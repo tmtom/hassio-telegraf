@@ -98,8 +98,9 @@ tmtom/hassio-telegraf/
   `/config` to `telegraf:telegraf` at every start so outputs can write there
   (verified: `outputs.file` into `/config` fails without it); root-capable
   editors (Samba/File editor/VS Code run as root on HAOS) are unaffected.
-- Container hostname = container ID → ugly `host` tags; the seed shows
-  `[global_tags]` / `hostname` guidance.
+- Container hostname on HAOS = the app's DNS name (`local-telegraf` for local
+  installs, `5f87e677-telegraf` from the repo) — a meaningful `host` tag, not
+  a random ID (verified on hardware).
 
 ## Development & testing (WSL2 with Docker)
 

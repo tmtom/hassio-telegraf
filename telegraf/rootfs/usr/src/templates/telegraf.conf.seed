@@ -23,8 +23,9 @@
   # Pin current behavior explicitly (Telegraf 1.40 warns that the default may
   # change): processors run after aggregators as they always did.
   skip_processors_after_aggregators = false
-  # The container hostname is a random container ID — ugly as a metric tag.
-  # Either set a fixed hostname here ...
+  # The host tag defaults to the app's container name — e.g. 'local-telegraf'
+  # for a local install, '5f87e677-telegraf' from this repository. Set a fixed
+  # hostname here or use tags instead:
   # hostname = "my-ha"
   # ... or tag your metrics instead:
 # [global_tags]
