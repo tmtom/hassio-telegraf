@@ -1,0 +1,119 @@
+name: Bump Telegraf
+
+# Two jobs, one workflow:
+# - check (schedule / manual): probe Docker Hub for a newer official telegraf
+#   image tag than the pinned BUILD_FROM and open a bump pull request that
+#   contains the full release procedure (version, CHANGELOG, doc links).
+# - tag-release (push to main touching telegraf/Dockerfile): create the
+#   v<version> tag for a merged bump — the versioned doc links depend on it.
+
+on:
+  schedule:
+    - cron: "30 4 * * 1"
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "telegraf/Dockerfile"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  tag-release:
+    name: Tag merged bump
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Create release tag if missing
+        run: |
+          version="$(sed -n 's/^version: "\(.*\)"/\1/p' telegraf/config.yaml | head -1)"
+          if [ -z "$version" ]; then
+            echo "No version found in telegraf/config.yaml" >&2
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/v${version}"; then
+            echo "Tag v${version} already exists"
+          else
+            git tag "v${version}"
+            git push origin "v${version}"
+            echo "Created tag v${version}"
+          fi
+
+  check:
+    name: Check for new Telegraf release
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Read pinned versions
+        id: pinned
+        run: |
+          echo "telegraf=$(sed -n 's/^ARG BUILD_FROM=telegraf://p' telegraf/Dockerfile)" >> "$GITHUB_OUTPUT"
+          echo "version=$(sed -n 's/^version: "\(.*\)"/\1/p' telegraf/config.yaml | head -1)" >> "$GITHUB_OUTPUT"
+
+      - name: Probe Docker Hub for a newer telegraf tag
+        id: probe
+        env:
+          PINNED: ${{ steps.pinned.outputs.telegraf }}
+        run: |
+          newest="$(curl -fsS 'https://hub.docker.com/v2/repositories/library/telegraf/tags?page_size=100&name=1.' \
+            | jq -r '.results[].name' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)"
+          echo "newest=${newest}" >> "$GITHUB_OUTPUT"
+          echo "Newest telegraf tag: ${newest} (pinned: ${PINNED})"
+          if [ -n "$newest" ] && [ "$newest" != "$PINNED" ]; then
+            echo "new=${newest}" >> "$GITHUB_OUTPUT"
+            echo "Newer Telegraf release found: ${newest} (pinned: ${PINNED})"
+          else
+            echo "new=" >> "$GITHUB_OUTPUT"
+            echo "No newer Telegraf release (pinned: ${PINNED})"
+          fi
+
+      - name: Open bump pull request
+        if: steps.probe.outputs.new != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OLD_TG: ${{ steps.pinned.outputs.telegraf }}
+          NEW_TG: ${{ steps.probe.outputs.new }}
+          OLD_VERSION: ${{ steps.pinned.outputs.version }}
+        run: |
+          set -eu
+          # Version scheme 0.x.y-telegraf<M>.<m>: minor bump of ours when the
+          # tracked telegraf MINOR changes (suffix changes), patch otherwise.
+          x="${OLD_VERSION#0.}"
+          x="${x%%.*}"
+          y="${OLD_VERSION#0.*.}"
+          y="${y%%-*}"
+          old_minor="${OLD_TG%.*}"
+          new_minor="${NEW_TG%.*}"
+          if [ "$new_minor" != "$old_minor" ]; then
+            new_version="0.$((x+1)).0-telegraf${new_minor}"
+          else
+            new_version="0.${x}.$((y+1))-telegraf${new_minor}"
+          fi
+
+          sed -i "s#^ARG BUILD_FROM=.*#ARG BUILD_FROM=telegraf:${NEW_TG}#" telegraf/Dockerfile
+          sed -i "s/^version: \".*\"/version: \"${new_version}\"/" telegraf/config.yaml
+          sed -i "s|blob/v${OLD_VERSION}/|blob/v${new_version}/|g" telegraf/README.md telegraf/DOCS.md telegraf/USER_GUIDE.md
+
+          entry="## ${new_version} ($(date +%F))\n\n- Automated bump: Telegraf ${OLD_TG} → ${NEW_TG}."
+          awk -v entry="$entry" 'BEGIN { done=0 } /^## / && !done { printf "%s\n\n", entry; done=1 } { print }' \
+            telegraf/CHANGELOG.md > telegraf/CHANGELOG.md.new
+          mv telegraf/CHANGELOG.md.new telegraf/CHANGELOG.md
+
+          branch="bump/automated-$(date +%Y%m%d)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add -A
+          git commit -m "chore: bump to ${new_version}"
+          git push -u origin "$branch"
+          body="Automated version bump.\n\n- Telegraf: ${OLD_TG} -> ${NEW_TG}\n\nMerging this PR is a full release: the CI build publishes the image and the tag job creates v${new_version} (the doc links point at it)."
+          gh pr create --title "chore: bump to ${new_version}" --body "$(printf '%b' "$body")" --base main --head "$branch"
