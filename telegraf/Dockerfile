@@ -12,9 +12,10 @@ COPY rootfs/ /
 COPY run.sh /run.sh
 RUN chmod +x /run.sh
 
-# Health = the agent process is alive. Short interval so the Supervisor's
-# "starting" -> "running" UI flip is quick (procps' pgrep is in the base image).
-HEALTHCHECK --interval=5s --timeout=10s --start-period=30s --retries=3 \
+# Health = the agent process is alive. Tight interval: the Supervisor derives
+# the UI state chip from this check and the lag is ~one interval (fhem 0.2.10
+# lesson: 3s feels instant; 5s trailed visibly).
+HEALTHCHECK --interval=3s --timeout=10s --start-period=30s --retries=3 \
   CMD pgrep -x telegraf >/dev/null || exit 1
 
 # Keep the upstream chain: tini (PID 1) -> run.sh (seed + MQTT env) ->

@@ -15,7 +15,8 @@
 #      error.
 #   4. Startup summary: telegraf version, config path + fingerprint, MQTT
 #      target (host:port, user or 'anonymous', source: api/manual/none).
-#   5. exec /entrypoint.sh "$@" (upstream: setcap, drop to 'telegraf', exec).
+#   5. Run the agent in a resilience loop (retry after fatal errors; clean
+#      stop forwarding) — see section 5 in the script.
 #
 set -eu
 
@@ -129,6 +130,36 @@ log "Config: ${CONFIG_FILE} + drop-ins in ${CONFIG_DROPIN_DIR}/ (edit -> auto-re
 log "Handing over to Telegraf (/entrypoint.sh)"
 
 #-----------------------------------------------------------------------------
-# 5. Upstream entrypoint: setcap, drop to the 'telegraf' user, exec telegraf.
+# 5. Resilience loop: a fatal Telegraf error (bad config, broker down) exits
+#    the agent — wait and retry so a FIXED config self-heals without a manual
+#    app start. The HEALTHCHECK (pgrep -x telegraf) reports the real agent
+#    state while we are here; stop signals are forwarded so Telegraf shuts
+#    down cleanly (flush) instead of being killed.
 #-----------------------------------------------------------------------------
-exec /entrypoint.sh "$@"
+RETRY_SECONDS="${RETRY_SECONDS:-30}"
+CHILD_PID=""
+STOPPING=0
+
+forward_stop() {
+  STOPPING=1
+  [ -n "${CHILD_PID}" ] && kill -TERM "${CHILD_PID}" 2>/dev/null || true
+}
+trap forward_stop TERM INT
+
+while [ "${STOPPING}" = 0 ]; do
+  /entrypoint.sh "$@" &
+  CHILD_PID=$!
+  CODE=0
+  wait "${CHILD_PID}" || CODE=$?
+  wait "${CHILD_PID}" 2>/dev/null || true   # reap fully after a trapped signal
+  [ "${STOPPING}" = 1 ] && break
+  warn "Telegraf exited (code ${CODE}) — retrying in ${RETRY_SECONDS}s."
+  warn "Fix the config/broker and the agent comes back by itself (or press Start to retry now)."
+  sleep "${RETRY_SECONDS}" &
+  CHILD_PID=$!
+  wait "${CHILD_PID}" 2>/dev/null || true
+  CHILD_PID=""
+done
+
+log "Stop requested — Telegraf shut down cleanly"
+exit 0

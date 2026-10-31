@@ -57,7 +57,10 @@ tmtom/hassio-telegraf/
   endpoint `http://1bd4a9fb-victoria-metrics:8428/write`.
 - Health: native Docker `HEALTHCHECK` = `pgrep -x telegraf` (procps is in the
   base image). No `watchdog` manifest key (obsolete, lint rejects it).
-  `init: false` (image has tini).
+  `init: false` (image has tini). **The Supervisor derives the UI state chip
+  from the healthcheck; the lag ≈ one check interval — keep it tight (3s,
+  fhem lesson).** With a healthcheck, apps stay "starting" until the first
+  check resolves.
 - **`map` entries default to `read_only: true`** — always set
   `read_only: false` on the `app_config` entry or `/config` mounts read-only
   and run.sh dies at the first mkdir (`Read-only file system`). "Omit keys at
@@ -90,9 +93,11 @@ tmtom/hassio-telegraf/
 - **Inputs fail the whole agent at start**: if `mqtt_consumer` cannot connect
   (e.g. no broker / DNS failure), telegraf exits 1 with
   `Error running agent: starting input inputs.mqtt_consumer: ...`. There is no
-  retry-at-start option. Consequence: an out-of-the-box install without any
-  MQTT broker stops the app (clear error in the Log tab + run.sh warning first)
-  — documented in troubleshooting, not a bug to "fix" by rewriting user config.
+  retry-at-start option — so run.sh wraps telegraf in a **resilience loop**
+  (retry every `RETRY_SECONDS`, default 30): a bad config/broker logs the
+  error + retry warning, the healthcheck reports unhealthy, and a FIXED
+  config self-heals without a manual app start (stop signals are trapped and
+  forwarded so Telegraf flushes cleanly).
 - `skip_processors_after_aggregators = false` is pinned in the seed's `[agent]`
   (Telegraf 1.40 warns about a future default change; pin = no surprise).
 - The upstream entrypoint drops to the `telegraf` user: run.sh chowns

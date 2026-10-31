@@ -18,4 +18,7 @@ tracked in `telegraf/Dockerfile` (`ARG BUILD_FROM`) and noted per release.
 - Commented output examples with connection details (VictoriaMetrics,
   InfluxDB 1.x/2.x, prometheus_client, MQTT), stdout placeholder output for
   proof-of-life.
-- Health monitoring, pre-built multi-arch images (amd64, aarch64).
+- Health monitoring (3 s healthcheck — drives the UI state chip), pre-built
+  multi-arch images (amd64, aarch64).
+- Resilience: a fatal agent error (bad config, broker down) is retried every
+  30 s — fix the config and the agent self-heals without a manual restart.
