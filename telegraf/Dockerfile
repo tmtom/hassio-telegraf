@@ -19,7 +19,11 @@ HEALTHCHECK --interval=5s --timeout=10s --start-period=30s --retries=3 \
 
 # Keep the upstream chain: tini (PID 1) -> run.sh (seed + MQTT env) ->
 # /entrypoint.sh (setcap + drop to the telegraf user) -> telegraf "$@".
+# Config auto-reload: POLL (not notify) — inotify events were not delivered
+# for Samba/Notepad++ saves on the HAOS-mounted app_configs folder (on-HA
+# finding); poll is editor-agnostic. Switch to --watch-config=notify if your
+# setup delivers events reliably.
 ENTRYPOINT ["/usr/bin/tini", "--", "/run.sh"]
 CMD ["--config", "/config/telegraf.conf", \
      "--config-directory", "/config/telegraf.conf.d", \
-     "--watch-config=notify", "--watch-debounce-interval=5s"]
+     "--watch-config=poll", "--watch-interval=10s", "--watch-debounce-interval=5s"]

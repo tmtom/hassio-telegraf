@@ -43,13 +43,16 @@ panel when a plugin needs them):
 | | Path |
 |---|---|
 | Inside the app | `/config/telegraf.conf` (+ `/config/telegraf.conf.d/*.conf`) |
-| On the HAOS host | `/addon_configs/5f87e677_telegraf/telegraf.conf` |
+| On the HAOS host | `/mnt/data/supervisor/app_configs/<repo>_telegraf/telegraf.conf` |
 
-The host folder is the app's **config folder** (`addon_configs` share). The
-name contains the repository ID (`5f87e677`) — yours is shown on the app's
-Info page. All `*.conf` files in `telegraf.conf.d/` are merged with the main
-file (Telegraf's `--config-directory`) — use drop-ins for extra inputs/outputs
-without touching the main file.
+The host folder is the app's **config folder** (the `addon_configs` Samba
+share — on current HAOS the folder is `app_configs`, historically
+`addon_configs`; the share exposes it as `\\<ha>\addon_configs\<repo>_telegraf\`).
+The name contains the repository ID (`5f87e677`, or `local` for a local
+install) — yours is shown on the app's Info page. All `*.conf` files in
+`telegraf.conf.d/` are merged with the main file (Telegraf's
+`--config-directory`) — use drop-ins for extra inputs/outputs without
+touching the main file.
 
 The seed is installed **once** on first start and never overwritten. Every
 start logs a fingerprint (`bytes, md5`) of your file — if you ever wonder
@@ -64,15 +67,17 @@ Any editor that can reach `/addon_configs` works:
   `/addon_configs/5f87e677_telegraf/telegraf.conf`.
 - **Terminal/SSH** app — `nano /addon_configs/5f87e677_telegraf/telegraf.conf`.
 
-**Saved changes apply automatically** (`--watch-config=notify`): Telegraf
-restarts itself a moment after the file changes — no app restart needed.
+**Saved changes apply automatically** — Telegraf polls the config every 10 s
+and restarts itself a moment after a change: no app restart needed.
 
 - The reload briefly (~2 s) restarts the agent: MQTT messages arriving in that
   window can be missed (QoS 0). Save deliberately, not per keystroke.
-- Editors that save atomically (write + rename) work too.
-- If your editor's saves are not picked up, switch the app `CMD` to
-  `--watch-config=poll --watch-interval=10s` (Dockerfile `CMD`) or restart the
-  app.
+- Polling is editor-agnostic (Samba saves, atomic write+rename saves, vi, …)
+  and takes effect within ~15 s. If you prefer instant inotify-based reloads
+  and your editor delivers file events reliably, switch the app `CMD` to
+  `--watch-config=notify --watch-debounce-interval=5s` (Dockerfile `CMD`) —
+  note that this was **not** delivered for Samba/desktop-editor saves on a
+  standard HAOS install (why poll is the default).
 
 ## The seed configuration
 

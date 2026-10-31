@@ -13,7 +13,8 @@ tracked in `telegraf/Dockerfile` (`ARG BUILD_FROM`) and noted per release.
   need to live in the config file.
 - One user-owned TOML config (`telegraf.conf` + `telegraf.conf.d/` drop-ins)
   in the app config folder — seeded once, never overwritten, included in
-  Home Assistant backups, auto-reloaded on save (`--watch-config`).
+  Home Assistant backups, auto-reloaded on save (poll every 10 s —
+  inotify is not delivered on the HAOS config mount, see USER_GUIDE).
 - Commented output examples with connection details (VictoriaMetrics,
   InfluxDB 1.x/2.x, prometheus_client, MQTT), stdout placeholder output for
   proof-of-life.

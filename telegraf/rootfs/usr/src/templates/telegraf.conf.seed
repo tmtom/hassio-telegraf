@@ -5,7 +5,8 @@
 #         on the HAOS host:    /addon_configs/5f87e677_telegraf/telegraf.conf
 #         (reachable via the 'addon_configs' Samba share, VS Code / File
 #         editor add-ons, or Terminal/SSH).
-# EDIT:   save -> Telegraf reloads itself (--watch-config). No restart needed.
+# EDIT:   save -> Telegraf notices within ~15s and reloads itself
+#         (--watch-config=poll). No restart needed.
 #         (The reload briefly restarts the agent: MQTT messages arriving in
 #         that ~2s window can be missed.)
 # MORE:   *.conf files in /config/telegraf.conf.d/ are loaded as well

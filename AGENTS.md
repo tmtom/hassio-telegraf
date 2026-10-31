@@ -77,12 +77,13 @@ tmtom/hassio-telegraf/
   become fields; strings need `json_string_fields` (globs ok) or `tag_keys`.
   Metric name = the input plugin name (`mqtt_consumer`), the MQTT topic is a
   `topic` tag; `name_override` renames. Verified on 1.40.2.
-- `--watch-config=notify` uses inotify; verify it fires on bind-mounted
-  `/addon_configs` and with editors that save via rename (atomic save). If
-  events are missed, the documented fallback is
-  `--watch-config=poll --watch-interval=10s` (in the CMD). Reload RESTARTS the
-  agent: the MQTT subscription drops for ~2s (QoS-0 messages in that window
-  are lost) — verified in the rig; worth a USER_GUIDE note.
+- `--watch-config=notify` is **NOT delivered on HAOS**: inotify events do not
+  cross the Supervisor's `app_configs` mount — verified on hardware with
+  touch, vi and Samba/Notepad++ saves (all silent). **`poll` is the shipped
+  default** (`--watch-config=poll --watch-interval=10s
+  --watch-debounce-interval=5s`); `notify` works in plain Docker (WSL2 rig)
+  and is documented as an opt-in. Reload RESTARTS the agent: the MQTT
+  subscription drops for ~2s (QoS-0 messages in that window are lost).
 - A config with zero outputs may be rejected; the seed ships a placeholder
   `[[outputs.file]]` (stdout) so first start always has an output. "Enable at
   least one output" is documented.
