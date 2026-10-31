@@ -196,11 +196,15 @@ accepts InfluxDB line protocol — Telegraf's `outputs.influxdb` works as-is:
   differs if you added that repository under a different address).
 - If the VM app's port 8428 is published to your HA host, your own name works
   too, e.g. `urls = ["http://homeassistant.local.lan:8428"]`.
+- Naming in VM: a metric with multiple fields is stored as one series per
+  field, `<metric>_<field>` (e.g. `mqtt_consumer_marker`,
+  `mqtt_consumer_temperature`) with the tags attached.
 - If writes fail with 401/403: check `enableHTTPAuth` in the VM app and set
   `username`/`password` here. If the connection is refused: check the VM
   app's **Network** section has port 8428 mapped.
-- Verify in VM's UI (`http://<ha>:8428/vmui`): query `count({__name__!=""})`
-  or look for your metric names.
+- Verify in VM's UI (`http://<ha>:8428/vmui`): query
+  `mqtt_consumer_marker` or `count({__name__!=""})` or look for your metric
+  names.
 
 ### InfluxDB 1.x / 2.x
 
