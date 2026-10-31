@@ -283,15 +283,18 @@ as the input:
 ## Troubleshooting
 
 - **The app stops right after start.** Read the **Log** tab:
+  - `Error running agent: loading config file ... failed: error parsing
+    data: line N: invalid TOML syntax` — your file has a syntax error
+    (typical: an unescaped `"` or `\` in a literal value). Fix and restart.
   - `Error running agent: starting input inputs.mqtt_consumer: ...` — the
     broker is unreachable or credentials are wrong (Telegraf fails the whole
     agent when an input cannot start; it does not retry at start). Fix the
     broker/options and restart.
-  - `error parsing data: line N: invalid TOML syntax` — your file has a
-    syntax error (typical: an unescaped `"` or `\` in a literal value). Fix
-    and restart.
   - `environment variable "X" not found` — a `${X}` reference without a
     defined variable; use `${X:-default}`.
+  - Note: after a fatal config error the UI can take up to a minute to show
+    the app as **stopped** (the Supervisor notices the dead container on its
+    next state poll). The Log tab is authoritative.
 - **Metrics seem to flow but nothing arrives in the database.** Keep the
   seed's `outputs.file` (stdout) enabled while debugging: if the Log tab
   shows metric lines, the input side is fine and the problem is the output
