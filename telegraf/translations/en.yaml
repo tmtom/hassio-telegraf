@@ -1,0 +1,21 @@
+configuration:
+  mqtt_automatic:
+    name: "MQTT: automatic"
+    description: "Discover the MQTT broker via the Supervisor mqtt service (recommended with the Mosquitto app). The connection is passed to Telegraf via environment variables."
+  mqtt_host:
+    name: "MQTT: host"
+    description: "Manual broker host, used when automatic discovery is off or fails. Other apps reach Mosquitto as core-mosquitto."
+  mqtt_port:
+    name: "MQTT: port"
+    description: "Manual broker port."
+  mqtt_user:
+    name: "MQTT: user"
+    description: "Manual broker user name (empty = anonymous)."
+  mqtt_password:
+    name: "MQTT: password"
+    description: "Manual broker password."
+network:
+  8125/udp: "statsd input (optional)"
+  8092/udp: "udp socket listener input (optional)"
+  8094/tcp: "tcp socket listener input (optional)"
+  9273/tcp: "prometheus_client output (optional)"

@@ -72,6 +72,14 @@ tmtom/hassio-telegraf/
 - A config with zero outputs may be rejected; the seed ships a placeholder
   `[[outputs.file]]` (stdout) so first start always has an output. "Enable at
   least one output" is documented.
+- **Inputs fail the whole agent at start**: if `mqtt_consumer` cannot connect
+  (e.g. no broker / DNS failure), telegraf exits 1 with
+  `Error running agent: starting input inputs.mqtt_consumer: ...`. There is no
+  retry-at-start option. Consequence: an out-of-the-box install without any
+  MQTT broker stops the app (clear error in the Log tab + run.sh warning first)
+  — documented in troubleshooting, not a bug to "fix" by rewriting user config.
+- `skip_processors_after_aggregators = false` is pinned in the seed's `[agent]`
+  (Telegraf 1.40 warns about a future default change; pin = no surprise).
 - The upstream entrypoint drops to the `telegraf` user: files seeded by
   run.sh must stay world-readable (644); `/config` writes by telegraf need
   ownership consideration if `outputs.file` writes there.

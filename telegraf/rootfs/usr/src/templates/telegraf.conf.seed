@@ -1,0 +1,139 @@
+# =========================================================================
+# Telegraf configuration — seeded once on first start, then yours to edit.
+#
+# WHERE:  inside the app:      /config/telegraf.conf
+#         on the HAOS host:    /addon_configs/5f87e677_telegraf/telegraf.conf
+#         (reachable via the 'addon_configs' Samba share, VS Code / File
+#         editor add-ons, or Terminal/SSH).
+# EDIT:   save -> Telegraf reloads itself (--watch-config). No restart needed.
+# MORE:   *.conf files in /config/telegraf.conf.d/ are loaded as well
+#         (merged with this file) — handy for extra inputs/outputs.
+#
+# ENV:    The MQTT connection is auto-wired at app start via the
+#         ${TELEGRAF_MQTT_*} variables below — you normally never touch those.
+#         Telegraf replaces ${VAR} with the environment value BEFORE parsing
+#         (strict since 1.38: every ${VAR} must exist — the app guarantees it).
+# =========================================================================
+
+[agent]
+  interval = "10s"
+  round_interval = true
+  # Pin current behavior explicitly (Telegraf 1.40 warns that the default may
+  # change): processors run after aggregators as they always did.
+  skip_processors_after_aggregators = false
+  # The container hostname is a random container ID — ugly as a metric tag.
+  # Either set a fixed hostname here ...
+  # hostname = "my-ha"
+  # ... or tag your metrics instead:
+# [global_tags]
+#   source = "ha"
+#   site = "home"
+
+# ---- INPUT: MQTT (auto-wired) -------------------------------------------
+[[inputs.mqtt_consumer]]
+  # Connection is auto-wired from the Supervisor's MQTT service (e.g. the
+  # Mosquitto app) via environment variables, refreshed on every app start.
+  # The official Mosquitto app is reachable as 'core-mosquitto' on 1883.
+  #
+  # Manual alternatives:
+  #   - set the mqtt_* options on the app's Configuration tab (exported as
+  #     the same variables), or
+  #   - replace the ${...} references below with literals (your credentials
+  #     then live in this file).
+  servers = ["tcp://${TELEGRAF_MQTT_HOST:-core-mosquitto}:${TELEGRAF_MQTT_PORT:-1883}"]
+  username = "${TELEGRAF_MQTT_USERNAME}"     # empty = anonymous
+  password = "${TELEGRAF_MQTT_PASSWORD}"
+
+  # Your topics here. '#' subscribes to EVERYTHING the broker allows —
+  # narrow it down once you know your topic layout.
+  topics = ["telegraf/#"]
+  # Tip: watch the broker first to see real topics and payloads, e.g.
+  #   mosquitto_sub -h core-mosquitto -t '#' -v    (or use MQTT Explorer)
+
+  data_format = "json"        # payloads are JSON (keys become fields).
+                              # Use "influx" if your senders already emit
+                              # InfluxDB line protocol. Adjust to your sender!
+
+  # Optional: how JSON keys map to the metric. By default every key becomes
+  # a field and the metric name is the MQTT topic. See e.g.:
+  #   json_string_fields = ["temperature", "humidity"]
+  #   json_time_key = "timestamp"
+  #   json_time_format = "unix_ms"
+  #   tag_keys = ["device", "room"]
+
+# ---- OUTPUT: placeholder — REPLACE ME -----------------------------------
+# Prints every metric to the app's Log tab: proof-of-life while you pick a
+# real output. REMOVE this block once an output below is enabled.
+[[outputs.file]]
+  files = ["stdout"]
+  data_format = "influx"
+
+# ---- OUTPUT: VictoriaMetrics (commented example) ------------------------
+# The VictoriaMetrics app (VictoriaMetrics-Community) accepts InfluxDB line
+# protocol directly — Telegraf's influxdb output works as-is.
+#
+# Connection details (the hostname is the app's internal DNS name — its
+# "hostname" on the app's Info page; the name is derived from the app
+# repository URL, so yours may differ if you added the VM repo under a
+# different address):
+#   host: the VM app's DNS name, e.g. '1bd4a9fb-victoria-metrics'
+#   port: 8428 (mapped in the VM app's Network section by default)
+#   endpoint: /write (appended automatically by the influxdb output)
+#
+# [[outputs.influxdb]]
+#   urls = ["http://1bd4a9fb-victoria-metrics:8428"]
+#   database = "telegraf"        # ignored by VictoriaMetrics, kept for InfluxDB
+#   # Only if the VM app's HTTP auth is enabled (enableHTTPAuth):
+#   # username = "..."
+#   # password = "..."
+
+# ---- OUTPUT: InfluxDB 1.x (commented example) ---------------------------
+# [[outputs.influxdb]]
+#   urls = ["http://influxdb.local:8086"]
+#   database = "telegraf"
+#   username = "..."
+#   password = "..."
+
+# ---- OUTPUT: InfluxDB 2.x / 3.x (commented example) ---------------------
+# [[outputs.influxdb_v2]]
+#   urls = ["http://influxdb.local:8086"]
+#   token = "..."
+#   organization = "..."
+#   bucket = "telegraf"
+
+# ---- OUTPUT: Prometheus scrape endpoint (commented example) -------------
+# Exposes :9273 for Prometheus/VictoriaMetrics to scrape. Enable the port
+# 9273/tcp on the app's Network panel first.
+# [[outputs.prometheus_client]]
+#   listen = ":9273"
+
+# ---- INPUTS: extras (commented examples) --------------------------------
+# NOTE: [[inputs.cpu]] / [[inputs.mem]] / [[inputs.disk]] report the APP
+# container, not the HAOS host. Host metrics need the /hostfs trick — see
+# USER_GUIDE.md.
+# [[inputs.cpu]]
+#   percpu = true
+#   totalcpu = true
+# [[inputs.mem]]
+# [[inputs.disk]]
+#   ignore_fs = ["tmpfs", "devtmpfs"]
+
+# Statsd listener: enable port 8125/udp on the app's Network panel first.
+# [[inputs.statsd]]
+#   service_address = ":8125"
+
+# UDP / TCP socket listeners (line protocol or JSON senders):
+# [[inputs.socket_listener]]
+#   service_address = "udp://:8092"
+#   data_format = "influx"
+# [[inputs.socket_listener]]
+#   service_address = "tcp://:8094"
+#   data_format = "influx"
+
+# MQTT output (forward metrics to a broker instead of / in addition to a DB):
+# [[outputs.mqtt]]
+#   servers = ["tcp://${TELEGRAF_MQTT_HOST:-core-mosquitto}:${TELEGRAF_MQTT_PORT:-1883}"]
+#   username = "${TELEGRAF_MQTT_USERNAME}"
+#   password = "${TELEGRAF_MQTT_PASSWORD}"
+#   topic_prefix = "telegraf"
+#   data_format = "json"
