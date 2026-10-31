@@ -2,7 +2,7 @@ name: Telegraf
 version: "0.1.0-telegraf1.40"
 slug: telegraf
 description: Telegraf metrics agent — collect, process and forward metrics (e.g. MQTT to VictoriaMetrics/InfluxDB)
-url: https://github.com/tmtom/hassio-telegraf
+url: https://docs.influxdata.com/telegraf/
 arch:
   - amd64
   - aarch64
@@ -14,6 +14,7 @@ init: false
 # image: ghcr.io/tmtom/hassio-telegraf
 map:
   - type: app_config
+    path: /config
 services:
   - mqtt:want
 ports:

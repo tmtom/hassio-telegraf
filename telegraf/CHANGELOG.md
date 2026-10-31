@@ -1,0 +1,20 @@
+# Changelog
+
+All notable changes to the Telegraf app are documented here. The `version` in
+`telegraf/config.yaml` is the source of truth; the baked Telegraf version is
+tracked in `telegraf/Dockerfile` (`ARG BUILD_FROM`) and noted per release.
+
+## 0.1.0-telegraf1.40 (unreleased)
+
+- Initial release: wraps the official Telegraf image (pinned 1.40.2).
+- MQTT consumer input (JSON) seeded on first start, with the connection
+  auto-wired from the Supervisor's MQTT service (manual `mqtt_*` options as
+  fallback) — credentials are injected as environment variables and never
+  need to live in the config file.
+- One user-owned TOML config (`telegraf.conf` + `telegraf.conf.d/` drop-ins)
+  in the app config folder — seeded once, never overwritten, included in
+  Home Assistant backups, auto-reloaded on save (`--watch-config`).
+- Commented output examples with connection details (VictoriaMetrics,
+  InfluxDB 1.x/2.x, prometheus_client, MQTT), stdout placeholder output for
+  proof-of-life.
+- Health monitoring, pre-built multi-arch images (amd64, aarch64).
