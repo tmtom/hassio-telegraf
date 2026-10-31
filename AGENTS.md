@@ -44,8 +44,11 @@ tmtom/hassio-telegraf/
   options are the fallback. The payload is wrapped in `{"result","data"}`.
 - **Strict env handling**: Telegraf ≥1.38 fails startup on undefined `${VAR}`.
   run.sh MUST export every variable the config references (empty is fine).
-  Substitution is raw text before TOML parsing: run.sh TOML-escapes (`\`→`\\`,
-  `"`→`\"`) everything it exports; the seed always quotes the variables.
+- **Env substitution is at the TOML value level** (verified with passwords
+  containing `"` and `\`): export values **RAW** — TOML-escaping them makes
+  Telegraf use the escaped literal as the password and MQTT auth fails
+  ("not Authorized"). Literal `"`/`\` in the *file text* still break TOML —
+  only the env-injected values are safe.
 - App ID hash: SHA-1 of the lowercased repo URL, first 8 chars. `tmtom/hassio-telegraf`
   → `5f87e677` → hostname `5f87e677-telegraf`, host folder
   `/addon_configs/5f87e677_telegraf/`. The VictoriaMetrics Community app
@@ -61,14 +64,21 @@ tmtom/hassio-telegraf/
 
 ## Hard-won Telegraf knowledge (do not re-learn these the hard way)
 
-- Env substitution happens **before** TOML parsing: a password containing `"`
-  or `\` breaks the config unless escaped (run.sh does this; test with both
-  characters in the MQTT password — an anonymous test broker masked a
-  credential bug in the fhem project for a whole release).
+- Env substitution happens at the TOML **value** level (after parsing): an
+  env-injected password may contain `"`/`\` safely (export raw!), but the same
+  characters typed literally in the file break TOML. Verified with a real
+  auth-required broker and a `p"a\ss` password — an anonymous test broker
+  masked a credential bug in the fhem project for a whole release.
+- **`json` parser drops string fields by default** — only numeric/bool keys
+  become fields; strings need `json_string_fields` (globs ok) or `tag_keys`.
+  Metric name = the input plugin name (`mqtt_consumer`), the MQTT topic is a
+  `topic` tag; `name_override` renames. Verified on 1.40.2.
 - `--watch-config=notify` uses inotify; verify it fires on bind-mounted
   `/addon_configs` and with editors that save via rename (atomic save). If
   events are missed, the documented fallback is
-  `--watch-config=poll --watch-interval=10s` (in the CMD).
+  `--watch-config=poll --watch-interval=10s` (in the CMD). Reload RESTARTS the
+  agent: the MQTT subscription drops for ~2s (QoS-0 messages in that window
+  are lost) — verified in the rig; worth a USER_GUIDE note.
 - A config with zero outputs may be rejected; the seed ships a placeholder
   `[[outputs.file]]` (stdout) so first start always has an output. "Enable at
   least one output" is documented.
@@ -80,9 +90,10 @@ tmtom/hassio-telegraf/
   — documented in troubleshooting, not a bug to "fix" by rewriting user config.
 - `skip_processors_after_aggregators = false` is pinned in the seed's `[agent]`
   (Telegraf 1.40 warns about a future default change; pin = no surprise).
-- The upstream entrypoint drops to the `telegraf` user: files seeded by
-  run.sh must stay world-readable (644); `/config` writes by telegraf need
-  ownership consideration if `outputs.file` writes there.
+- The upstream entrypoint drops to the `telegraf` user: run.sh chowns
+  `/config` to `telegraf:telegraf` at every start so outputs can write there
+  (verified: `outputs.file` into `/config` fails without it); root-capable
+  editors (Samba/File editor/VS Code run as root on HAOS) are unaffected.
 - Container hostname = container ID → ugly `host` tags; the seed shows
   `[global_tags]` / `hostname` guidance.
 

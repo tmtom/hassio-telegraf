@@ -6,6 +6,8 @@
 #         (reachable via the 'addon_configs' Samba share, VS Code / File
 #         editor add-ons, or Terminal/SSH).
 # EDIT:   save -> Telegraf reloads itself (--watch-config). No restart needed.
+#         (The reload briefly restarts the agent: MQTT messages arriving in
+#         that ~2s window can be missed.)
 # MORE:   *.conf files in /config/telegraf.conf.d/ are loaded as well
 #         (merged with this file) — handy for extra inputs/outputs.
 #
@@ -50,16 +52,19 @@
   # Tip: watch the broker first to see real topics and payloads, e.g.
   #   mosquitto_sub -h core-mosquitto -t '#' -v    (or use MQTT Explorer)
 
-  data_format = "json"        # payloads are JSON (keys become fields).
-                              # Use "influx" if your senders already emit
-                              # InfluxDB line protocol. Adjust to your sender!
+  data_format = "json"        # payloads are JSON. Use "influx" if your
+                              # senders already emit InfluxDB line protocol.
 
-  # Optional: how JSON keys map to the metric. By default every key becomes
-  # a field and the metric name is the MQTT topic. See e.g.:
-  #   json_string_fields = ["temperature", "humidity"]
+  # Optional: how JSON keys map to the metric. Two things to know:
+  #   1. Metrics are named after the input plugin ('mqtt_consumer'); the MQTT
+  #      topic arrives as the 'topic' tag. Use name_override to rename.
+  #   2. JSON keys become fields — NUMERIC and bool keys only by default!
+  #      Strings are dropped unless declared (a very common surprise):
+  #   json_string_fields = ["status", "message"]   # globs ok
+  #   tag_keys = ["device", "room"]                # keys -> metric tags
   #   json_time_key = "timestamp"
   #   json_time_format = "unix_ms"
-  #   tag_keys = ["device", "room"]
+  #   name_override = "mysensors"                  # rename the metric
 
 # ---- OUTPUT: placeholder — REPLACE ME -----------------------------------
 # Prints every metric to the app's Log tab: proof-of-life while you pick a
@@ -79,6 +84,8 @@
 #   host: the VM app's DNS name, e.g. '1bd4a9fb-victoria-metrics'
 #   port: 8428 (mapped in the VM app's Network section by default)
 #   endpoint: /write (appended automatically by the influxdb output)
+# If the VM app's port is published to your HA host, you can also point at
+# your own name for it, e.g. 'http://homeassistant.local.lan:8428'.
 #
 # [[outputs.influxdb]]
 #   urls = ["http://1bd4a9fb-victoria-metrics:8428"]
