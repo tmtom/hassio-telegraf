@@ -293,8 +293,9 @@ as the input:
     defined variable; use `${X:-default}`.
   - The app **retries every 30 seconds** and logs
     `Telegraf exited (code N) — retrying in 30s` — fix the config/broker and
-    the agent comes back **by itself** (no restart needed). While broken, the
-    app reports *unhealthy* and the Log shows the error on every retry.
+    the agent comes back **by itself** (no restart needed). Note: the state
+    chip keeps showing *running* while the agent is down (the Supervisor does
+    not surface the container health there) — the Log tab is authoritative.
 - **Metrics seem to flow but nothing arrives in the database.** Keep the
   seed's `outputs.file` (stdout) enabled while debugging: if the Log tab
   shows metric lines, the input side is fine and the problem is the output

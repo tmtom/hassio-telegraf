@@ -60,7 +60,9 @@ tmtom/hassio-telegraf/
   `init: false` (image has tini). **The Supervisor derives the UI state chip
   from the healthcheck; the lag ≈ one check interval — keep it tight (3s,
   fhem lesson).** With a healthcheck, apps stay "starting" until the first
-  check resolves.
+  check resolves. NB (on-HA finding): a *failing* healthcheck does NOT change
+  the chip — it shows "running" even while the agent is down (resilience-loop
+  retry window); the Log tab is the honest signal.
 - **`map` entries default to `read_only: true`** — always set
   `read_only: false` on the `app_config` entry or `/config` mounts read-only
   and run.sh dies at the first mkdir (`Read-only file system`). "Omit keys at
