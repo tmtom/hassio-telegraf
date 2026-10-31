@@ -1,0 +1,7 @@
+# Local artifacts
+*.log
+*.bak
+.DS_Store
+
+# Never commit personal Telegraf configuration snapshots
+/telegraf.conf.*
