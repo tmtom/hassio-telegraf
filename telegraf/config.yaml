@@ -15,6 +15,7 @@ init: false
 map:
   - type: app_config
     path: /config
+    read_only: false   # NB: map entries default to read_only: TRUE
 services:
   - mqtt:want
 ports:

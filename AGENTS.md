@@ -58,6 +58,10 @@ tmtom/hassio-telegraf/
 - Health: native Docker `HEALTHCHECK` = `pgrep -x telegraf` (procps is in the
   base image). No `watchdog` manifest key (obsolete, lint rejects it).
   `init: false` (image has tini).
+- **`map` entries default to `read_only: true`** — always set
+  `read_only: false` on the `app_config` entry or `/config` mounts read-only
+  and run.sh dies at the first mkdir (`Read-only file system`). "Omit keys at
+  their defaults" bit us here: the default is the wrong direction.
 - Version scheme: `0.x.y-telegraf<minor>` (e.g. `0.1.0-telegraf1.40`). HA only
   offers an update when `version` changes — bump it for **every** release.
   Telegraf bumps take a minor bump of our `0.x` (handled by the bump workflow).
