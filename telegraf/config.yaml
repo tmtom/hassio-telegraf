@@ -9,9 +9,7 @@ arch:
 startup: services
 init: false
 # Pre-built multi-arch image, built by GitHub Actions on every release.
-# (Kept commented during development so the Supervisor builds locally;
-#  enabled together with the CI pipeline in Phase 5.)
-# image: ghcr.io/tmtom/hassio-telegraf
+image: ghcr.io/tmtom/hassio-telegraf
 map:
   - type: app_config
     path: /config

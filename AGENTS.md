@@ -137,13 +137,11 @@ Branch + PR for app content; merge to `main` = release (with version bump).
 Telegraf version bumps are automated (`.github/workflows/bump-telegraf.yaml`:
 weekly probe → bump PR → tag on merge).
 
-First-release sequence (0.1.0-telegraf1.40): after on-HA acceptance (Phase 3,
-checklist in `~/oc-notes/PHASE3-on-HA-checklist.md`) — merge the
-`release/workflows` branch (builder/build-app/bump-telegraf), enable `image:`
-in `telegraf/config.yaml`, CHANGELOG "unreleased" → date, tag
-`v0.1.0-telegraf1.40`. The build publishes GHCR; the bump workflow's
-tag-release job backstops the tag (it triggers on `telegraf/Dockerfile`
-pushes).
+First-release sequence (0.1.0-telegraf1.40): DONE (2026-11-01) — workflows
+merged from `release/workflows`, `image:` enabled, tagged `v0.1.0-telegraf1.40`.
+On-HA acceptance (Phase 3) passed before the release: seeding/auto-wire,
+JSON→VM round-trip, poll reload (vi + Notepad++/Samba), config-error
+self-heal, backup/restore, icons.
 
 ## Roadmap / status
 
