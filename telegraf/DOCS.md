@@ -66,4 +66,4 @@ survives uninstalling the app.
 
 Options reference, config editing, MQTT setup, output cookbook
 (VictoriaMetrics, InfluxDB, Prometheus), troubleshooting and more — in
-**[USER_GUIDE.md](https://github.com/tmtom/hassio-telegraf/blob/v0.1.0-telegraf1.40/telegraf/USER_GUIDE.md)**.
+**[USER_GUIDE.md](https://github.com/tmtom/hassio-telegraf/blob/v0.1.1-telegraf1.40/telegraf/USER_GUIDE.md)**.

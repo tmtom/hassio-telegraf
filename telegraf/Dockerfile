@@ -1,4 +1,4 @@
-ARG BUILD_FROM=telegraf:1.40.2
+ARG BUILD_FROM=telegraf:1.40.3
 FROM ${BUILD_FROM}
 
 # jq: parse /data/options.json and the Supervisor services payload in run.sh.
