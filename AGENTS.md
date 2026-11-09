@@ -137,6 +137,16 @@ Branch + PR for app content; merge to `main` = release (with version bump).
 Telegraf version bumps are automated (`.github/workflows/bump-telegraf.yaml`:
 weekly probe → bump PR → tag on merge).
 
+- **GitHub Actions cannot create PRs by default**: the repo setting *Settings →
+  Actions → General → Workflow permissions → "Allow GitHub Actions to create
+  and approve pull requests"* must be ON, or `gh pr create` fails with
+  `GraphQL: GitHub Actions is not permitted to create or approve pull requests
+  (createPullRequest)` even with `permissions: pull-requests: write` in the
+  workflow. Hit on Bump Telegraf #2 (2026-11-09): the probe, commit and branch
+  push all worked — only PR creation failed. Not toggleable via API; the repo
+  owner must click it. Recovery: the pushed `bump/automated-<date>` branch is
+  intact — open the PR manually (`gh pr create` as the user).
+
 First-release sequence (0.1.0-telegraf1.40): DONE (2026-11-01) — workflows
 merged from `release/workflows`, `image:` enabled, tagged `v0.1.0-telegraf1.40`.
 On-HA acceptance (Phase 3) passed before the release: seeding/auto-wire,
