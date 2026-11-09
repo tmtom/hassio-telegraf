@@ -1,7 +1,7 @@
 # Telegraf app — user guide
 
 This is the full reference for the Telegraf app. The Documentation tab shows
-the short [setup guide](https://github.com/tmtom/hassio-telegraf/blob/v0.1.0-telegraf1.40/telegraf/DOCS.md).
+the short [setup guide](https://github.com/tmtom/hassio-telegraf/blob/v0.1.1-telegraf1.40/telegraf/DOCS.md).
 
 - [Options reference](#options-reference)
 - [Where the configuration lives](#where-the-configuration-lives)

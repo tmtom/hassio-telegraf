@@ -1,5 +1,5 @@
 name: Telegraf
-version: "0.1.0-telegraf1.40"
+version: "0.1.1-telegraf1.40"
 slug: telegraf
 description: Telegraf metrics agent — collect, process and forward metrics (e.g. MQTT to VictoriaMetrics/InfluxDB)
 url: https://docs.influxdata.com/telegraf/

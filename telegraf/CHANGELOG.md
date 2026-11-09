@@ -4,6 +4,10 @@ All notable changes to the Telegraf app are documented here. The `version` in
 `telegraf/config.yaml` is the source of truth; the baked Telegraf version is
 tracked in `telegraf/Dockerfile` (`ARG BUILD_FROM`) and noted per release.
 
+## 0.1.1-telegraf1.40 (2026-11-09)
+
+- Automated bump: Telegraf 1.40.2 → 1.40.3.
+
 ## 0.1.0-telegraf1.40 (2026-11-01)
 
 - Initial release: wraps the official Telegraf image (pinned 1.40.2).
