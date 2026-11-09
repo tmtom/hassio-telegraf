@@ -4,8 +4,10 @@ name: Bump Telegraf
 # - check (schedule / manual): probe Docker Hub for a newer official telegraf
 #   image tag than the pinned BUILD_FROM and open a bump pull request that
 #   contains the full release procedure (version, CHANGELOG, doc links).
-# - tag-release (push to main touching telegraf/Dockerfile): create the
-#   v<version> tag for a merged bump — the versioned doc links depend on it.
+# - tag-release (push to main touching telegraf/Dockerfile or
+#   telegraf/config.yaml): create the v<version> tag for a merged release —
+#   the versioned doc links depend on it (config.yaml covers app-only
+#   releases, which do not touch the Dockerfile; the job is idempotent).
 
 on:
   schedule:
@@ -16,6 +18,7 @@ on:
       - main
     paths:
       - "telegraf/Dockerfile"
+      - "telegraf/config.yaml"
 
 permissions:
   contents: write
@@ -68,7 +71,7 @@ jobs:
             | jq -r '.results[].name' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)"
           echo "newest=${newest}" >> "$GITHUB_OUTPUT"
           echo "Newest telegraf tag: ${newest} (pinned: ${PINNED})"
-          if [ -n "$newest" ] && [ "$newest" != "$PINNED" ]; then
+          if [ -n "$newest" ] && [ "$newest" != "$PINNED" ] && printf '%s\n%s\n' "$PINNED" "$newest" | sort -C -V; then
             echo "new=${newest}" >> "$GITHUB_OUTPUT"
             echo "Newer Telegraf release found: ${newest} (pinned: ${PINNED})"
           else
@@ -85,19 +88,14 @@ jobs:
           OLD_VERSION: ${{ steps.pinned.outputs.version }}
         run: |
           set -eu
-          # Version scheme 0.x.y-telegraf<M>.<m>: minor bump of ours when the
-          # tracked telegraf MINOR changes (suffix changes), patch otherwise.
-          x="${OLD_VERSION#0.}"
-          x="${x%%.*}"
-          y="${OLD_VERSION#0.*.}"
-          y="${y%%-*}"
-          old_minor="${OLD_TG%.*}"
-          new_minor="${NEW_TG%.*}"
-          if [ "$new_minor" != "$old_minor" ]; then
-            new_version="0.$((x+1)).0-telegraf${new_minor}"
-          else
-            new_version="0.${x}.$((y+1))-telegraf${new_minor}"
-          fi
+          # Version scheme <telegraf>.<build> (1.40.3.1 = Telegraf 1.40.3, app
+          # build 1): a telegraf bump starts at build 1; app-only releases at
+          # the same pin bump the build counter by hand. The build counter is
+          # a 4th NUMERIC segment, never a prerelease (1.40.3-1): awesomeversion
+          # orders multi-digit numeric prereleases unreliably (1.40.3-10 vs
+          # 1.40.3-9 is unordered — the update tile would hide the update) and
+          # zero-padded forms raise AwesomeVersionCompareException.
+          new_version="${NEW_TG}.1"
 
           sed -i "s#^ARG BUILD_FROM=.*#ARG BUILD_FROM=telegraf:${NEW_TG}#" telegraf/Dockerfile
           sed -i "s/^version: \".*\"/version: \"${new_version}\"/" telegraf/config.yaml

@@ -1,7 +1,7 @@
 # Telegraf app — user guide
 
 This is the full reference for the Telegraf app. The Documentation tab shows
-the short [setup guide](https://github.com/tmtom/hassio-telegraf/blob/v0.1.1-telegraf1.40/telegraf/DOCS.md).
+the short [setup guide](https://github.com/tmtom/hassio-telegraf/blob/v1.40.3.1/telegraf/DOCS.md).
 
 - [Options reference](#options-reference)
 - [Where the configuration lives](#where-the-configuration-lives)
@@ -266,7 +266,8 @@ as the input:
 - **Uninstall** keeps the config folder (`/addon_configs/..._telegraf`); a
   reinstall picks your config up where you left it.
 - **App updates** never touch your config (seeded once). They bump the pinned
-  Telegraf version (the app version `0.x.y-telegraf1.40` tracks it). In-flight
+  Telegraf version — the version shows it directly: `1.40.3.1` = Telegraf
+  1.40.3, app build 1 (app-only changes bump the last digit). In-flight
   metrics in memory can be lost on stop/update — Telegraf's design; the loss
   is bounded by one flush interval (10 s by default).
 
@@ -307,6 +308,12 @@ as the input:
   --test`.)
 - **Edits not picked up:** see [Editing the configuration](#editing-the-configuration)
   for the `poll` fallback.
+- **The update tile shows "Preparing" long after the update finished.** The
+  update itself is done — the Log tab shows the new Telegraf version. The
+  tile only flips to *Up-to-date* once Home Assistant's background data
+  refresh picks up the new version string, which can take a few minutes
+  (worst case ~15) and then resolves by itself. This is a Home Assistant
+  display lag, not an app problem.
 - **"Who overwrote my config?":** every start logs the config fingerprint
   (bytes + md5). Compare with your own `md5sum` to see what the app saw.
 

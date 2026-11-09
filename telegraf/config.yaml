@@ -1,5 +1,9 @@
 name: Telegraf
-version: "0.1.1-telegraf1.40"
+# Version scheme: <telegraf>.<build> — 1.40.3.1 = Telegraf 1.40.3 (the
+# Dockerfile BUILD_FROM pin), app build 1. App-only releases bump the build
+# counter; a Telegraf bump resets it to 1. Never use a prerelease counter
+# (1.40.3-1) — HA's version comparator mishandles multi-digit ones.
+version: "1.40.3.1"
 slug: telegraf
 description: Telegraf metrics agent — collect, process and forward metrics (e.g. MQTT to VictoriaMetrics/InfluxDB)
 url: https://docs.influxdata.com/telegraf/
