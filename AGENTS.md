@@ -63,13 +63,31 @@ tmtom/hassio-telegraf/
   check resolves. NB (on-HA finding): a *failing* healthcheck does NOT change
   the chip — it shows "running" even while the agent is down (resilience-loop
   retry window); the Log tab is the honest signal.
+- **Update tile "Preparing" (HA 2026.11+ frontend)**: after install, the tile
+  shows "Preparing" while the hassio update entity's `_update_ongoing` flag
+  waits for the add-ons coordinator to confirm a changed `installed_version`
+  (`homeassistant/components/hassio/update.py`; "Preparing" = in progress with
+  no `update_percentage`). The container work is already done at that point;
+  if the confirming refresh races the Supervisor's data publication, the tile
+  lags until the next add-ons poll (`HASSIO_ADDON_UPDATE_INTERVAL` = 15 min)
+  and then clears by itself. Cosmetic HA-side lag — no app-side fix; recorded
+  in USER_GUIDE troubleshooting.
 - **`map` entries default to `read_only: true`** — always set
   `read_only: false` on the `app_config` entry or `/config` mounts read-only
   and run.sh dies at the first mkdir (`Read-only file system`). "Omit keys at
   their defaults" bit us here: the default is the wrong direction.
-- Version scheme: `0.x.y-telegraf<minor>` (e.g. `0.1.0-telegraf1.40`). HA only
-  offers an update when `version` changes — bump it for **every** release.
-  Telegraf bumps take a minor bump of our `0.x` (handled by the bump workflow).
+- Version scheme: Telegraf-first `<telegraf>.<build>` (e.g. `1.40.3.1` =
+  Telegraf 1.40.3, app build 1). HA only offers an update when `version`
+  changes — app-only releases bump the build counter, a Telegraf bump resets
+  it to 1 (the bump workflow does that). The build counter is a **4th numeric
+  segment, never a prerelease suffix** (`1.40.3-1`): awesomeversion orders
+  multi-digit numeric prereleases unreliably — `1.40.3-10` vs `1.40.3-9`
+  compares *unordered* (all of `<`, `==`, `>` are False), so the update tile
+  would silently hide the update — and zero-padded forms (`1.40.3-001`)
+  raise `AwesomeVersionCompareException`. Verified: `1.40.3.1` parses as
+  SIMPLEVER, compares correctly across rollovers (`…3.9` < `…3.10`) and
+  across the old `0.1.x-telegraf1.40` scheme (cross-strategy compare works
+  and orders right).
 
 ## Hard-won Telegraf knowledge (do not re-learn these the hard way)
 
@@ -123,7 +141,8 @@ tmtom/hassio-telegraf/
 
 ## Release procedure (every user-visible change)
 
-1. Bump `version` in `telegraf/config.yaml` (`0.x.y-telegraf1.40`).
+1. Bump `version` in `telegraf/config.yaml` (`<telegraf>.<build>`: Telegraf
+   bump → `<new-tg>.1`, app-only → bump the build counter).
 2. Add a `telegraf/CHANGELOG.md` entry on top.
 3. Rewrite doc links in `telegraf/{README,DOCS,USER_GUIDE}.md`
    (`blob/<old-tag>/` → `blob/<new-tag>/`).
